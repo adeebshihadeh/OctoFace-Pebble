@@ -1,4 +1,10 @@
 #include <pebble.h>
+
+#define current_time_color GColorWhite
+#define not_connected_background_color GColorChromeYellow
+#define printer_error_background_color GColorRed
+#define progress_background_color GColorMediumSpringGreen
+#define settings_not_set_background_color GColorVividCerulean
   
 static Window *s_main_window;
 static TextLayer *s_time_layer;
@@ -28,7 +34,7 @@ static void main_window_load(Window *window) {
   // Create time TextLayer
   s_time_layer = text_layer_create(GRect(0, 55, 144, 50));
   text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, GColorBlack);
+  text_layer_set_text_color(s_time_layer, current_time_color);
   text_layer_set_text(s_time_layer, "00:00");
 
   // Improve the layout to be more like a watchface
@@ -60,7 +66,10 @@ static void init() {
     .load = main_window_load,
     .unload = main_window_unload
   });
-
+  
+  // Set the window background color
+  window_set_background_color(s_main_window, settings_not_set_background_color);
+  
   // Display the window
   window_stack_push(s_main_window, true);
   
