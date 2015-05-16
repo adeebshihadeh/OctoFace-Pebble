@@ -12,6 +12,7 @@
     "sdkVersion": "3",
     "shortName": "OctoFace",
     "targetPlatforms": [
+        "aplite",
         "basalt"
     ],
     "uuid": "3c144f72-47f4-478c-bd77-af823f27925a",

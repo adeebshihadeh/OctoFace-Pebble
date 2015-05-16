@@ -16,11 +16,48 @@ static Layer *progress_percent_layer;
 
 static float progress_percent;
 
+void process_tuple(Tuple *t){
+  int key = t->key;
+  int value = t->value->int32;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Got key %d, value %d", key, value);
+  switch(key){
+    case 0:
+      APP_LOG(APP_LOG_LEVEL_INFO, "Got 'hello' message!");
+      break;
+    case 1:;
+      DictionaryIterator *iter;
+      app_message_outbox_begin(&iter);
+ 
+      if (iter == NULL) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Iter is null! Returning");
+        return;
+      }
+ 
+      dict_write_uint8(iter, 1, rand() % 3);
+      dict_write_end(iter);
+ 
+      app_message_outbox_send();
+      break;
+  }
+}
+ 
+void inbox(DictionaryIterator *iter, void *context){
+  Tuple *t = dict_read_first(iter);
+  if(t){
+    process_tuple(t);
+  }
+  while(t != NULL){
+    t = dict_read_next(iter);
+    if(t){
+      process_tuple(t);
+    }
+  }
+}
+
 static void some_update_proc(Layer *this_layer, GContext *ctx){
-  graphics_context_set_fill_color(ctx, GColorRed);
-  graphics_context_set_stroke_color(ctx, GColorCyan);
+  graphics_context_set_fill_color(ctx, COLOR_FALLBACK(progress_background_color, GColorBlack));
   float fill_height = screen_height-(screen_height*(progress_percent/100));
-  graphics_fill_rect(ctx, GRect(0, screen_height-fill_height, screen_width, fill_height), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(0, screen_height-fill_height + 1, screen_width, fill_height), 0, GCornerNone);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "progress layer updated");
 }
 
@@ -74,6 +111,7 @@ static void main_window_load(Window *window) {
   
   // Make sure the time is displayed from the start
   update_time();
+  
 }
 
 static void main_window_unload(Window *window) {
@@ -99,10 +137,14 @@ static void init() {
   });
   
   // Set the window background color
-  window_set_background_color(s_main_window, settings_not_set_background_color);
+  window_set_background_color(s_main_window, COLOR_FALLBACK(settings_not_set_background_color, GColorWhite));
   
   // Display the window
   window_stack_push(s_main_window, true);
+  
+  app_message_register_inbox_received(inbox);
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+  
   
   // Subscribe to the time ticker on the minute unit
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
