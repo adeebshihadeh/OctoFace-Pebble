@@ -5,15 +5,15 @@ var settings;
 var ipAddress;
 
 Pebble.addEventListener("ready", function(e){
-  if(typeof localStorage.getItem("octo_ip") !== "undefined"){
-    ipAddress = localStorage.getItem("octo_ip");
+  console.log(JSON.stringify(localStorage));
+  if(typeof localStorage.getItem("ipAddress") !== "undefined"){
+    ipAddress = localStorage.getItem("ipAddress");
     console.log("look below");
     console.log(ipAddress);
     getProgress(); 
   }else {
     console.log("no settings");
   }
-
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
@@ -28,16 +28,17 @@ Pebble.addEventListener("webviewclosed", function(e) {
 });
 
 Pebble.addEventListener("appmessage", function(e) {
+  console.log("app message below");
   console.log(e);
 });
 
 function getProgress(){
-  if(typeof localStorage.getItem("settings") !== "undefined"){
+  if(typeof localStorage.getItem("ipAddress") !== "undefined"){
     settings = JSON.parse(localStorage.getItem("settings"));
     //var octo_ip = settings[octo_ip];
     //var octo_apikey = settings[octo_apikey];
     var octo_ip = "kossel.local";
-    var octo_apikey = "B4F2BA2DC33346A1A013D7895D7B04A9";
+    var octo_apikey = "1B4F2BA2DC33346A1A013D7895D7B04A9";
     var request_url = "http://" + octo_ip + "/api/printer";
     console.log(octo_ip);
     console.log(octo_apikey);
@@ -49,18 +50,24 @@ function getProgress(){
     req.onload = function(e) {
       console.log("loaded");
       if(req.readyState == 4 && req.status == 200){
-        response = JSON.parse(req.responseText);
-        console.log("done!");
-        console.log(JSON.stringify(response));
-        connected = true;
+        if(req.status == 200){
+          response = JSON.parse(req.responseText);
+          console.log("done!");
+          console.log(JSON.stringify(response));
+          connected = true;
+          Pebble.sendAppMessage({"connected": true}); 
+        }else {
+          console.log("something went wrong");
+          Pebble.sendAppMessage({"connected": false});
+        }
       }else {
         console.log("something went wrong");
-        connected = false;
+        Pebble.sendAppMessage({"connected": false});
       }
     };
-    req.send(null);
+    req.send();
   }else {
+    Pebble.sendAppMessage({"connected": false});
     console.log("settings not defined");
-    connected = false;
   }
 }

@@ -1,5 +1,8 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "connected": 0,
+        "percent": 0
+    },
     "capabilities": [
         "configurable"
     ],

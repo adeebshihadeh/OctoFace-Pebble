@@ -2,6 +2,13 @@
   
 #define screen_width 144
 #define screen_height 168
+  
+#ifdef PBL_COLOR 
+  #define color_screen 1
+#else
+  #define color_screen 0
+#endif  
+
 
 #define current_time_color GColorWhite
 #define not_connected_background_color GColorChromeYellow
@@ -14,7 +21,23 @@ static Window *s_main_window;
 static TextLayer *s_time_layer;
 static Layer *progress_percent_layer;
 
-static float progress_percent;
+static float progress_percent; 
+
+
+void setConnected(Layer *layer, int connected){
+  // Destroy the progress percent layer
+  if(connected){
+    APP_LOG(APP_LOG_LEVEL_INFO, "connected");
+    if(layer_get_hidden(layer)){
+      layer_set_hidden(layer, false);
+    }
+  }else {
+    APP_LOG(APP_LOG_LEVEL_INFO, "not connected");
+    if(!(layer_get_hidden(layer))){
+      layer_set_hidden(layer, true);
+    }
+  }
+}
 
 void process_tuple(Tuple *t){
   int key = t->key;
@@ -22,7 +45,9 @@ void process_tuple(Tuple *t){
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Got key %d, value %d", key, value);
   switch(key){
     case 0:
-      APP_LOG(APP_LOG_LEVEL_INFO, "Got 'hello' message!");
+      // Connected
+      setConnected(progress_percent_layer, value);
+      APP_LOG(APP_LOG_LEVEL_INFO, "%d", value);
       break;
     case 1:;
       DictionaryIterator *iter;
@@ -95,6 +120,8 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(progress_percent_layer, some_update_proc);
   
   layer_add_child(window_get_root_layer(window), progress_percent_layer);
+  
+  setConnected(progress_percent_layer, 1);
   
   // Create time TextLayer
   s_time_layer = text_layer_create(GRect(0, 55, 144, 50));
