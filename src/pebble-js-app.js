@@ -1,18 +1,33 @@
 var percent_done;
 var connected;
+var current_state;
 var settings;
+var print_time_left;
+var print_time_elapsed;
 
+var settings_defined;
+
+// Settings variables
 var ipAddress;
+var apiKey;
+
+// Variables corresponding to OctoPrint state
+var connection_error_state = 0;
+var operational_state = 1;
+var printing_state = 2;
+var settings_not_defined_state = 3;
+
 
 Pebble.addEventListener("ready", function(e){
-  console.log(JSON.stringify(localStorage));
-  if(typeof localStorage.getItem("ipAddress") !== "undefined"){
-    ipAddress = localStorage.getItem("ipAddress");
-    console.log("look below");
-    console.log(ipAddress);
+  if(typeof localStorage.getItem("ipAddress") !== "undefined" && typeof localStorage.getItem("apiKey") !== "undefined"){
+    updateSettings();
+    settings_defined = true;
     getProgress(); 
   }else {
-    console.log("no settings");
+    console.log("settings undefined");
+    settings_defined = false;
+    // send an app message saying that there are no settings
+    // also say that we are not connected
   }
 });
 
@@ -23,8 +38,11 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 Pebble.addEventListener("webviewclosed", function(e) {
   console.log("Configuration window returned: " + e.response);
-  settings = JSON.parse(e.response);
-  console.log(JSON.stringify(settings));
+  var options = JSON.parse(decodeURIComponent(e.response));
+  localStorage.setItem("ipAddress", options["ipAddress"]);
+  localStorage.setItem("apiKey", options["apiKey"]);
+  updateSettings();
+  console.log(JSON.stringify(options));
 });
 
 Pebble.addEventListener("appmessage", function(e) {
@@ -33,41 +51,37 @@ Pebble.addEventListener("appmessage", function(e) {
 });
 
 function getProgress(){
-  if(typeof localStorage.getItem("ipAddress") !== "undefined"){
-    settings = JSON.parse(localStorage.getItem("settings"));
-    //var octo_ip = settings[octo_ip];
-    //var octo_apikey = settings[octo_apikey];
-    var octo_ip = "kossel.local";
-    var octo_apikey = "1B4F2BA2DC33346A1A013D7895D7B04A9";
-    var request_url = "http://" + octo_ip + "/api/printer";
-    console.log(octo_ip);
-    console.log(octo_apikey);
+  if(settings_defined){
+    var request_url = "http://" + ipAddress + "/api/printer";
+    console.log("sending request to " + ipAddress + " with apikey " + apiKey);
     
     var response;
-    var req = new XMLHttpRequest();
-    req.open("GET", request_url, true);
-    req.setRequestHeader("X-Api-Key", octo_apikey);
-    req.onload = function(e) {
-      console.log("loaded");
-      if(req.readyState == 4 && req.status == 200){
-        if(req.status == 200){
-          response = JSON.parse(req.responseText);
-          console.log("done!");
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", request_url, true);
+    xhr.setRequestHeader("X-Api-Key", apiKey);
+    xhr.onload = function(e) {
+      if(xhr.readyState == 4){
+        if(xhr.status == 200){
+          response = JSON.parse(xhr.responseText);
+          console.log("successful request");
           console.log(JSON.stringify(response));
           connected = true;
           Pebble.sendAppMessage({"connected": true}); 
         }else {
-          console.log("something went wrong");
+          console.log("error with request. status: " + xhr.status);
           Pebble.sendAppMessage({"connected": false});
         }
-      }else {
-        console.log("something went wrong");
-        Pebble.sendAppMessage({"connected": false});
       }
     };
-    req.send();
+    xhr.send();
   }else {
     Pebble.sendAppMessage({"connected": false});
     console.log("settings not defined");
   }
+}
+
+function updateSettings(){
+	// Retrieve the user's settings from localStorage
+	ipAddress = localStorage.getItem("ipAddress");
+	apiKey = localStorage.getItem("apiKey");
 }

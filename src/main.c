@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <effect_layer.h>
   
 #define screen_width 144
 #define screen_height 168
@@ -10,7 +11,7 @@
 #endif  
 
 
-#define current_time_color GColorWhite
+#define current_time_color GColorBlack
 #define not_connected_background_color GColorChromeYellow
 #define printer_error_background_color GColorRed
 #define progress_background_color GColorMediumSpringGreen
@@ -19,25 +20,28 @@
 // UI Elements variables
 static Window *s_main_window;
 static TextLayer *s_time_layer;
-static Layer *progress_percent_layer;
+static EffectLayer *progress_percent_layer; 
 
-static float progress_percent; 
-
-
-void setConnected(Layer *layer, int connected){
-  // Destroy the progress percent layer
-  if(connected){
-    APP_LOG(APP_LOG_LEVEL_INFO, "connected");
-    if(layer_get_hidden(layer)){
-      layer_set_hidden(layer, false);
-    }
-  }else {
-    APP_LOG(APP_LOG_LEVEL_INFO, "not connected");
-    if(!(layer_get_hidden(layer))){
-      layer_set_hidden(layer, true);
-    }
-  }
-}
+// void setConnected(EffectLayer *layer, Window *window, int connected){
+//   // Destroy the progress percent layer
+//   if(connected){
+//     APP_LOG(APP_LOG_LEVEL_INFO, "connected");
+//     if(layer_get_hidden(layer)){
+//       layer_set_hidden(layer, false);
+//     }
+//     if(color_screen){
+//       window_set_background_color(window, COLOR_FALLBACK(progress_background_color, GColorBlack));
+//     }
+//   }else {
+//     APP_LOG(APP_LOG_LEVEL_INFO, "not connected");
+//     if(!(layer_get_hidden(layer))){
+//       layer_set_hidden(layer, true);
+//     }
+//     if(color_screen){
+//       window_set_background_color(window, COLOR_FALLBACK(not_connected_background_color, GColorBlack));
+//     }
+//   }
+// }
 
 void process_tuple(Tuple *t){
   int key = t->key;
@@ -46,7 +50,7 @@ void process_tuple(Tuple *t){
   switch(key){
     case 0:
       // Connected
-      setConnected(progress_percent_layer, value);
+      //setConnected(progress_percent_layer, s_main_window,value);
       APP_LOG(APP_LOG_LEVEL_INFO, "%d", value);
       break;
     case 1:;
@@ -79,16 +83,13 @@ void inbox(DictionaryIterator *iter, void *context){
   }
 }
 
-static void some_update_proc(Layer *this_layer, GContext *ctx){
-  graphics_context_set_fill_color(ctx, COLOR_FALLBACK(progress_background_color, GColorBlack));
-  float fill_height = screen_height-(screen_height*(progress_percent/100));
-  graphics_fill_rect(ctx, GRect(0, screen_height-fill_height + 1, screen_width, fill_height), 0, GCornerNone);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "progress layer updated");
-}
-
 static void update_progress(int percent_complete){
-  progress_percent = percent_complete;
-  layer_mark_dirty(progress_percent_layer);
+  APP_LOG(APP_LOG_LEVEL_INFO, "%d complete", percent_complete);
+  Layer* layer = effect_layer_get_layer(progress_percent_layer);
+  float progress_percent_height = (screen_height*(percent_complete*0.01));
+  APP_LOG(APP_LOG_LEVEL_INFO, "%fpx height", progress_percent_height);
+  //layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
+  layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
 }
 
 static void update_time() {
@@ -108,21 +109,14 @@ static void update_time() {
     strftime(buffer, sizeof("00:00"), "%I:%M", tick_time);
   }
 
-  update_progress(rand() % 100);
+  //update_progress(rand() % 100);
+  update_progress(55);
   
   // Display the time
   text_layer_set_text(s_time_layer, buffer);
 }
 
 static void main_window_load(Window *window) {
-  // Create the progress percent layer
-  progress_percent_layer = layer_create(GRect(0, 0, screen_width, screen_height));
-  layer_set_update_proc(progress_percent_layer, some_update_proc);
-  
-  layer_add_child(window_get_root_layer(window), progress_percent_layer);
-  
-  setConnected(progress_percent_layer, 1);
-  
   // Create time TextLayer
   s_time_layer = text_layer_create(GRect(0, 55, 144, 50));
   text_layer_set_background_color(s_time_layer, GColorClear);
@@ -136,6 +130,14 @@ static void main_window_load(Window *window) {
   // Add it as a child layer to the Window's root layer
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_layer));
   
+  // Create the progress percent layer
+  progress_percent_layer = effect_layer_create(GRect(0, 0, screen_width, screen_height));
+  effect_layer_add_effect(progress_percent_layer, effect_invert, NULL);
+  
+  layer_add_child(window_get_root_layer(window), effect_layer_get_layer(progress_percent_layer));
+  
+  //setConnected(progress_percent_layer, s_main_window, 1);
+  
   // Make sure the time is displayed from the start
   update_time();
   
@@ -146,7 +148,7 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_time_layer);
   
   // Destroy the progress percent layer
-  layer_destroy(progress_percent_layer);
+  effect_layer_destroy(progress_percent_layer);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
