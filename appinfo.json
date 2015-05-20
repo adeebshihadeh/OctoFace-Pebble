@@ -1,6 +1,6 @@
 {
     "appKeys": {
-        "connected": 0,
+        "connected": 1,
         "percent": 0
     },
     "capabilities": [

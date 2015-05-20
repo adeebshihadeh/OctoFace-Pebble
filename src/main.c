@@ -43,29 +43,27 @@ static EffectLayer *progress_percent_layer;
 //   }
 // }
 
+static void update_progress(int percent_complete){
+  APP_LOG(APP_LOG_LEVEL_INFO, "%d complete", percent_complete);
+  Layer* layer = effect_layer_get_layer(progress_percent_layer);
+  float progress_percent_height = (screen_height*(percent_complete*0.01));
+  APP_LOG(APP_LOG_LEVEL_INFO, "%fpx height", progress_percent_height);
+  //layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
+  layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
+}
+
 void process_tuple(Tuple *t){
   int key = t->key;
   int value = t->value->int32;
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Got key %d, value %d", key, value);
   switch(key){
+    // Print progress percent
     case 0:
-      // Connected
-      //setConnected(progress_percent_layer, s_main_window,value);
-      APP_LOG(APP_LOG_LEVEL_INFO, "%d", value);
+      update_progress(value);
       break;
-    case 1:;
-      DictionaryIterator *iter;
-      app_message_outbox_begin(&iter);
- 
-      if (iter == NULL) {
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Iter is null! Returning");
-        return;
-      }
- 
-      dict_write_uint8(iter, 1, rand() % 3);
-      dict_write_end(iter);
- 
-      app_message_outbox_send();
+    // Connected state (true/false)
+    case 1:
+    
       break;
   }
 }
@@ -81,15 +79,6 @@ void inbox(DictionaryIterator *iter, void *context){
       process_tuple(t);
     }
   }
-}
-
-static void update_progress(int percent_complete){
-  APP_LOG(APP_LOG_LEVEL_INFO, "%d complete", percent_complete);
-  Layer* layer = effect_layer_get_layer(progress_percent_layer);
-  float progress_percent_height = (screen_height*(percent_complete*0.01));
-  APP_LOG(APP_LOG_LEVEL_INFO, "%fpx height", progress_percent_height);
-  //layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
-  layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
 }
 
 static void update_time() {
@@ -110,7 +99,7 @@ static void update_time() {
   }
 
   //update_progress(rand() % 100);
-  update_progress(55);
+  //update_progress(55);
   
   // Display the time
   text_layer_set_text(s_time_layer, buffer);
