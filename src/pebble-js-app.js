@@ -96,8 +96,10 @@ function getPrintProgress(){
           response = JSON.parse(xhr.responseText);
           console.log("successful request");
           console.log(JSON.stringify(response));
-          console.log(response["progress"]["completion"] + "complete");
-          Pebble.sendAppMessage({"percent": Math.round(response["progress"]["completion"])});
+          var completion_percent = Math.round(response["progress"]["completion"]);
+          var print_time_left = formatSeconds(response["progress"]["printTimeLeft"]);
+          console.log(completion_percent + "complete");
+          Pebble.sendAppMessage({"percent": completion_percent, "print_time_left": print_time_left});
         }else {
           console.log("error with request. status: " + xhr.status);
           Pebble.sendAppMessage({"connected": false});
@@ -116,4 +118,11 @@ function updateSettings(){
 	// Retrieve the user's settings from localStorage
 	ipAddress = localStorage.getItem("ipAddress");
 	apiKey = localStorage.getItem("apiKey");
+}
+
+function formatSeconds(seconds){
+  var time = new Date(null);
+  time.setSeconds(seconds);
+  
+  return time.toISOString().substr(11, 8);
 }

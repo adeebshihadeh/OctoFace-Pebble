@@ -1,8 +1,5 @@
 #include <pebble.h>
-#include <effect_layer.h>
-  
-#define screen_width 144
-#define screen_height 168
+#include "effect_layer.h"
   
 #ifdef PBL_COLOR 
   #define color_screen 1
@@ -10,7 +7,9 @@
   #define color_screen 0
 #endif  
 
-
+#define screen_width 144
+#define screen_height 168
+  
 #define current_time_color GColorBlack
 #define not_connected_background_color GColorChromeYellow
 #define printer_error_background_color GColorRed
@@ -20,36 +19,19 @@
 // UI Elements variables
 static Window *s_main_window;
 static TextLayer *s_time_layer;
-static EffectLayer *progress_percent_layer; 
-
-// void setConnected(EffectLayer *layer, Window *window, int connected){
-//   // Destroy the progress percent layer
-//   if(connected){
-//     APP_LOG(APP_LOG_LEVEL_INFO, "connected");
-//     if(layer_get_hidden(layer)){
-//       layer_set_hidden(layer, false);
-//     }
-//     if(color_screen){
-//       window_set_background_color(window, COLOR_FALLBACK(progress_background_color, GColorBlack));
-//     }
-//   }else {
-//     APP_LOG(APP_LOG_LEVEL_INFO, "not connected");
-//     if(!(layer_get_hidden(layer))){
-//       layer_set_hidden(layer, true);
-//     }
-//     if(color_screen){
-//       window_set_background_color(window, COLOR_FALLBACK(not_connected_background_color, GColorBlack));
-//     }
-//   }
-// }
+static TextLayer *s_print_time_left_layer;
+static TextLayer *s_info_layer;
+static EffectLayer *progress_percent_layer;
 
 static void update_progress(int percent_complete){
-  APP_LOG(APP_LOG_LEVEL_INFO, "%d complete", percent_complete);
+  APP_LOG(APP_LOG_LEVEL_INFO, "%d %% complete", percent_complete);
   Layer* layer = effect_layer_get_layer(progress_percent_layer);
   float progress_percent_height = (screen_height*(percent_complete*0.01));
   APP_LOG(APP_LOG_LEVEL_INFO, "%fpx height", progress_percent_height);
-  //layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
   layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
+  static char percent_text[] = "100";
+  snprintf(percent_text, sizeof(percent_text), "%d%%", percent_complete);
+  text_layer_set_text(s_info_layer, percent_text);
 }
 
 void process_tuple(Tuple *t){
@@ -63,7 +45,17 @@ void process_tuple(Tuple *t){
       break;
     // Connected state (true/false)
     case 1:
-    
+      // not connected
+      if(value == 0){
+        update_progress(0);
+        text_layer_set_text(s_info_layer, "Not connected");
+      }
+      break;
+    // Print time left
+    case 2:
+//       char tempvar[] = t->key;
+//       text_layer_set_text(s_print_time_left_layer, tempvar);
+//       text_layer_set_text(s_print_time_left_layer, t->key->);
       break;
   }
 }
@@ -98,34 +90,55 @@ static void update_time() {
     strftime(buffer, sizeof("00:00"), "%I:%M", tick_time);
   }
 
-  //update_progress(rand() % 100);
-  //update_progress(55);
+  // send message to js to update the progress
   
   // Display the time
   text_layer_set_text(s_time_layer, buffer);
 }
 
 static void main_window_load(Window *window) {
-  // Create time TextLayer
-  s_time_layer = text_layer_create(GRect(0, 55, 144, 50));
+  // ------------------------ Time Text Layer ------------------------
+  s_time_layer = text_layer_create(GRect(0, 25, 144, 50));
   text_layer_set_background_color(s_time_layer, GColorClear);
   text_layer_set_text_color(s_time_layer, current_time_color);
   text_layer_set_text(s_time_layer, "00:00");
 
-  // Improve the layout to be more like a watchface
   text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
 
-  // Add it as a child layer to the Window's root layer
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_layer));
+  // ------------------------ Time Text Layer ------------------------
   
-  // Create the progress percent layer
+  // ------------------------ Print Time Left Text Layer ------------------------
+  s_print_time_left_layer = text_layer_create(GRect(0, 65, 144, 50));
+  text_layer_set_background_color(s_print_time_left_layer, GColorClear);
+  text_layer_set_text_color(s_print_time_left_layer, current_time_color);
+  text_layer_set_text(s_print_time_left_layer, "00:00");
+
+  text_layer_set_font(s_print_time_left_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
+  text_layer_set_text_alignment(s_print_time_left_layer, GTextAlignmentCenter);
+
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_print_time_left_layer));
+  // ------------------------ Print Time Left Text Layer ------------------------
+  
+  // ------------------------ Info Text Layer ------------------------
+  s_info_layer = text_layer_create(GRect(3, 130, screen_width, 30));
+  text_layer_set_background_color(s_info_layer, GColorClear);
+  text_layer_set_text_color(s_info_layer, current_time_color);
+  text_layer_set_text(s_info_layer, "");
+
+  text_layer_set_font(s_info_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+  text_layer_set_text_alignment(s_info_layer, GTextAlignmentLeft);
+
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_info_layer));
+  // ------------------------ Info Text Layer ------------------------
+  
+  // ------------------------ Progress Percent Layer ------------------------
   progress_percent_layer = effect_layer_create(GRect(0, 0, screen_width, screen_height));
   effect_layer_add_effect(progress_percent_layer, effect_invert, NULL);
   
   layer_add_child(window_get_root_layer(window), effect_layer_get_layer(progress_percent_layer));
-  
-  //setConnected(progress_percent_layer, s_main_window, 1);
+  // ------------------------ Progress Percent Layer ------------------------
   
   // Make sure the time is displayed from the start
   update_time();
