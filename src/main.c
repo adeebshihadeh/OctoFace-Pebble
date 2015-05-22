@@ -27,6 +27,7 @@ static TextLayer *s_print_time_left_layer;
 static TextLayer *s_info_layer;
 static TextLayer *s_filename_layer;
 static EffectLayer *progress_percent_layer;
+static Layer *s_graphics_layer;
 
 static void update_progress(int percent_complete){
   APP_LOG(APP_LOG_LEVEL_INFO, "setting progress bar to %d%% complete", percent_complete);
@@ -131,9 +132,22 @@ static void update_time() {
   text_layer_set_text(s_time_layer, buffer);
 }
 
+static void update_proc(Layer *this_layer, GContext *ctx){
+  int x_padding = 10;
+  int y_pos = 70;
+  graphics_draw_line(ctx, GPoint(x_padding, y_pos), GPoint(screen_width-x_padding, y_pos));
+}
+
 static void main_window_load(Window *window) {
+  // ------------------------ Graphics Layer ------------------------
+  s_graphics_layer = layer_create(GRect(0, 0, screen_width, screen_height));
+  layer_set_update_proc(s_graphics_layer, update_proc);
+  
+  layer_add_child(window_get_root_layer(window), s_graphics_layer);
+  // ------------------------ Graphics Layer ------------------------
+  
   // ------------------------ Time Text Layer ------------------------
-  s_time_layer = text_layer_create(GRect(0, 25, 144, 50));
+  s_time_layer = text_layer_create(GRect(0, 20, 144, 50));
   text_layer_set_background_color(s_time_layer, GColorClear);
   text_layer_set_text_color(s_time_layer, current_time_color);
   text_layer_set_text(s_time_layer, "00:00");
@@ -193,11 +207,17 @@ static void main_window_load(Window *window) {
 }
 
 static void main_window_unload(Window *window) {
-  // Destroy the time text layer
+  // Destroy the text layers
   text_layer_destroy(s_time_layer);
+  text_layer_destroy(s_print_time_left_layer);
+  text_layer_destroy(s_info_layer);
+  text_layer_destroy(s_filename_layer);
   
   // Destroy the progress percent layer
   effect_layer_destroy(progress_percent_layer);
+  
+  // Destroy the graphics layer
+  layer_destroy(s_graphics_layer);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
