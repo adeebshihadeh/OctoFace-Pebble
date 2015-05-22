@@ -5,6 +5,7 @@ var ipAddress;
 var apiKey;
 
 // Variables corresponding to OctoPrint state
+var not_connected_state = 0;
 var operational_state = 1;
 var settings_not_defined_state = 2;
 
@@ -30,15 +31,15 @@ Pebble.addEventListener("showConfiguration", function(e) {
 Pebble.addEventListener("webviewclosed", function(e) {
   console.log("Configuration window returned: " + e.response);
   var options = JSON.parse(decodeURIComponent(e.response));
-  if(!(options.ipAddress === "")){
-    localStorage.setItem("ipAddress", options.ipAddress);
-  }else {
+  if(options.ipAddress === ""){
     localStorage.removeItem("ipAddress");
-  }
-  if(!(options.apiKey === "")){
-    localStorage.setItem("apiKey", options.apiKey); 
   }else {
+    localStorage.setItem("ipAddress", options.ipAddress);
+  }
+  if(options.apiKey === ""){
     localStorage.removeItem("apiKey");
+  }else {
+    localStorage.setItem("apiKey", options.apiKey);
   }
   updateSettings();
   console.log(JSON.stringify(options));
@@ -46,7 +47,11 @@ Pebble.addEventListener("webviewclosed", function(e) {
 
 Pebble.addEventListener("appmessage", function(e) {
   console.log("app message below");
-  console.log(e);
+  console.log(JSON.stringify(e));
+  if(e.payload.update == 0){
+    console.log("updating");
+    getState();
+  }
 });
 
 function getState(){
@@ -69,16 +74,16 @@ function getState(){
           }else if(response.state.text == "Printing"){
             getPrintProgress();
           }
-          Pebble.sendAppMessage({"connected": true});
+          //Pebble.sendAppMessage({"connected": true});
         }else {
           console.log("error with request. status: " + xhr.status);
-          Pebble.sendAppMessage({"connected": false});
+          Pebble.sendAppMessage({"current_state": not_connected_state});
         }
       }
     };
     xhr.send();
   }else {
-    Pebble.sendAppMessage({"connected": false});
+    Pebble.sendAppMessage({"current_state": not_connected_state});
     console.log("settings not defined");
   }
 }
@@ -104,17 +109,16 @@ function getPrintProgress(){
           Pebble.sendAppMessage({"percent": completion_percent, "print_time_left": print_time_left});
         }else {
           console.log("error with request. status: " + xhr.status);
-          Pebble.sendAppMessage({"connected": false});
+          Pebble.sendAppMessage({"current_state": not_connected_state});
         }
       }
     };
     xhr.send();
   }else {
-    Pebble.sendAppMessage({"connected": false});
+    Pebble.sendAppMessage({"current_state": not_connected_state});
     console.log("settings not defined");
   }
 }
-
 
 function updateSettings(){
 	// Retrieve the user's settings from localStorage

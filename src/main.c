@@ -16,6 +16,7 @@
 #define progress_background_color GColorMediumSpringGreen
 #define settings_not_set_background_color GColorVividCerulean
 
+#define not_connected_state 0
 #define operational_state 1
 #define settings_not_defined_state 2
 
@@ -48,26 +49,13 @@ void process_tuple(Tuple *t){
     case 0:
       update_progress(value);
       break;
-    // Connected state (true/false)
-    case 1:
-      // not connected
-      if(value == 0){
-        update_progress(0);
-        text_layer_set_text(s_info_layer, "Connection error");
-      }else {
-        text_layer_set_text(s_info_layer, "Connected");
-      }
-      break;
-    // Print time left
-    case 2:
-//       char tempvar[] = t->key;
-//       text_layer_set_text(s_print_time_left_layer, tempvar);
-//       text_layer_set_text(s_print_time_left_layer, t->key->);
-      break;
     // Printer state
-    case 3:
+    case 1:
       switch(value){
-        // Operational state
+        case not_connected_state:
+          update_progress(0);
+          text_layer_set_text(s_info_layer, "Connection error");
+          break;
         case operational_state:
           update_progress(99);
           text_layer_set_text(s_print_time_left_layer, "00:00");
@@ -78,6 +66,12 @@ void process_tuple(Tuple *t){
           text_layer_set_text(s_info_layer, "Settings not defined");
           break;
       }
+      break;
+    // Print time left
+    case 2:
+//       char tempvar[] = t->key;
+//       text_layer_set_text(s_print_time_left_layer, tempvar);
+//       text_layer_set_text(s_print_time_left_layer, t->key->);
       break;
   }
 }
@@ -113,6 +107,15 @@ static void update_time() {
   }
 
   // send message to js to update the progress
+  DictionaryIterator *js_message;
+  app_message_outbox_begin(&js_message);
+  if(js_message == NULL){
+    APP_LOG(APP_LOG_LEVEL_INFO, "js_message is null");
+    return;
+  }
+  dict_write_uint8(js_message, 3, 0);
+  dict_write_end(js_message);
+  app_message_outbox_send();
   
   // Display the time
   text_layer_set_text(s_time_layer, buffer);
