@@ -134,7 +134,7 @@ static void update_time() {
 
 static void update_proc(Layer *this_layer, GContext *ctx){
   int x_padding = 10;
-  int y_pos = 70;
+  int y_pos = 65;
   graphics_draw_line(ctx, GPoint(x_padding, y_pos), GPoint(screen_width-x_padding, y_pos));
 }
 
@@ -174,7 +174,7 @@ static void main_window_load(Window *window) {
   s_filename_layer = text_layer_create(GRect(0, 90, screen_width, 50));
   text_layer_set_background_color(s_filename_layer, GColorClear);
   text_layer_set_text_color(s_filename_layer, current_time_color);
-  text_layer_set_text(s_filename_layer, ".gcode");
+  text_layer_set_text(s_filename_layer, "");
 
   text_layer_set_font(s_filename_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
   text_layer_set_text_alignment(s_filename_layer, GTextAlignmentCenter);
