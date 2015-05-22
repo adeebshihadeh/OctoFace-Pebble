@@ -41,15 +41,9 @@ static void update_progress(int percent_complete){
   }
 }
 
-// static void update_print_time_left(uint32_t time_left){
-//   time_t rt = time(NULL);
-//   char time_left[] = "00:00:00";
-//   struct tm *acctime = localtime((time_t)&rt);
-//   strftime(time_left, sizeof(time_left), "%m/%d%H:%M",  acctime);
-// }
-
 void process_tuple(Tuple *t){
   static char print_time_left[9];
+  static char filename[35];
   int key = t->key;
   int value = t->value->int32;
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Got key %d, value %d", key, value);
@@ -64,15 +58,18 @@ void process_tuple(Tuple *t){
         case not_connected_state:
           update_progress(0);
           text_layer_set_text(s_info_layer, "Connection error");
+          text_layer_set_text(s_filename_layer, "");
           break;
         case operational_state:
           update_progress(99);
           text_layer_set_text(s_print_time_left_layer, "00:00");
           text_layer_set_text(s_info_layer, "Printer Ready");
+          text_layer_set_text(s_filename_layer, "");
           break;
         case settings_not_defined_state:
           text_layer_set_text(s_print_time_left_layer, "00:00");
           text_layer_set_text(s_info_layer, "Settings not defined");
+          text_layer_set_text(s_filename_layer, "");
           break;
       }
       break;
@@ -83,6 +80,8 @@ void process_tuple(Tuple *t){
       break;
     // Filename
     case 4:
+      snprintf(filename, sizeof(filename), "%s", t->value->cstring);
+      text_layer_set_text(s_filename_layer, filename);
       break;
   }
 }
