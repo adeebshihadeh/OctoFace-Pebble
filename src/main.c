@@ -1,11 +1,11 @@
 #include <pebble.h>
 #include "effect_layer.h"
   
-#ifdef PBL_COLOR 
+#ifdef PBL_COLOR
   #define color_screen 1
 #else
   #define color_screen 0
-#endif  
+#endif
 
 #define screen_width 144
 #define screen_height 168
@@ -15,6 +15,9 @@
 #define printer_error_background_color GColorRed
 #define progress_background_color GColorMediumSpringGreen
 #define settings_not_set_background_color GColorVividCerulean
+
+#define operational_state 1
+#define settings_not_defined_state 2
 
 // UI Elements variables
 static Window *s_main_window;
@@ -29,9 +32,11 @@ static void update_progress(int percent_complete){
   float progress_percent_height = (screen_height*(percent_complete*0.01));
   APP_LOG(APP_LOG_LEVEL_INFO, "%fpx height", progress_percent_height);
   layer_set_frame(layer, GRect(0, screen_height-progress_percent_height, screen_width, progress_percent_height));
-  static char percent_text[] = "100";
-  snprintf(percent_text, sizeof(percent_text), "%d%%", percent_complete);
-  text_layer_set_text(s_info_layer, percent_text);
+  if(percent_complete > 0){
+    static char percent_text[] = "100%";
+    snprintf(percent_text, sizeof(percent_text), "%d%%", percent_complete);
+    text_layer_set_text(s_info_layer, percent_text); 
+  }
 }
 
 void process_tuple(Tuple *t){
@@ -48,7 +53,9 @@ void process_tuple(Tuple *t){
       // not connected
       if(value == 0){
         update_progress(0);
-        text_layer_set_text(s_info_layer, "Not connected");
+        text_layer_set_text(s_info_layer, "Connection error");
+      }else {
+        text_layer_set_text(s_info_layer, "Connected");
       }
       break;
     // Print time left
@@ -56,6 +63,21 @@ void process_tuple(Tuple *t){
 //       char tempvar[] = t->key;
 //       text_layer_set_text(s_print_time_left_layer, tempvar);
 //       text_layer_set_text(s_print_time_left_layer, t->key->);
+      break;
+    // Printer state
+    case 3:
+      switch(value){
+        // Operational state
+        case operational_state:
+          update_progress(99);
+          text_layer_set_text(s_print_time_left_layer, "00:00");
+          text_layer_set_text(s_info_layer, "Printer Ready");
+          break;
+        case settings_not_defined_state:
+          text_layer_set_text(s_print_time_left_layer, "00:00");
+          text_layer_set_text(s_info_layer, "Settings not defined");
+          break;
+      }
       break;
   }
 }
@@ -125,7 +147,7 @@ static void main_window_load(Window *window) {
   s_info_layer = text_layer_create(GRect(3, 130, screen_width, 30));
   text_layer_set_background_color(s_info_layer, GColorClear);
   text_layer_set_text_color(s_info_layer, current_time_color);
-  text_layer_set_text(s_info_layer, "");
+  text_layer_set_text(s_info_layer, "Loading...");
 
   text_layer_set_font(s_info_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
   text_layer_set_text_alignment(s_info_layer, GTextAlignmentLeft);

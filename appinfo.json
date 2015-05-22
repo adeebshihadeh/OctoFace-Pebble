@@ -1,6 +1,7 @@
 {
     "appKeys": {
         "connected": 1,
+        "current_state": 3,
         "percent": 0,
         "print_time_left": 2
     },
