@@ -31,24 +31,18 @@ Pebble.addEventListener("showConfiguration", function(e) {
 Pebble.addEventListener("webviewclosed", function(e) {
   console.log("Configuration window returned: " + e.response);
   var options = JSON.parse(decodeURIComponent(e.response));
-  if(options.ipAddress === ""){
-    localStorage.removeItem("ipAddress");
-  }else {
-    localStorage.setItem("ipAddress", options.ipAddress);
-  }
-  if(options.apiKey === ""){
-    localStorage.removeItem("apiKey");
-  }else {
-    localStorage.setItem("apiKey", options.apiKey);
-  }
+  localStorage.setItem("ipAddress", options.ipAddress);
+  localStorage.setItem("apiKey", options.apiKey);
+  localStorage.setItem("refresh_frequency", options.refresh_frequency);
   updateSettings();
+  getState();
   console.log(JSON.stringify(options));
 });
 
 Pebble.addEventListener("appmessage", function(e) {
   console.log("app message below");
   console.log(JSON.stringify(e));
-  if(e.payload.update == 0){
+  if(e.payload.update === 0){
     console.log("updating");
     getState();
   }
@@ -106,7 +100,7 @@ function getPrintProgress(){
           var completion_percent = Math.round(response.progress.completion);
           var print_time_left = formatSeconds(response.progress.printTimeLeft);
           console.log(completion_percent + "% complete");
-          Pebble.sendAppMessage({"percent": completion_percent, "print_time_left": print_time_left});
+          Pebble.sendAppMessage({"percent": completion_percent, "print_time_left": print_time_left, "filename": response.job.file.name});
         }else {
           console.log("error with request. status: " + xhr.status);
           Pebble.sendAppMessage({"current_state": not_connected_state});
@@ -122,6 +116,7 @@ function getPrintProgress(){
 
 function updateSettings(){
 	// Retrieve the user's settings from localStorage
+  console.log("presenting localStorage: " + JSON.stringify(localStorage));
 	ipAddress = localStorage.getItem("ipAddress");
 	apiKey = localStorage.getItem("apiKey");
 }

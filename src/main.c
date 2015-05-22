@@ -25,10 +25,11 @@ static Window *s_main_window;
 static TextLayer *s_time_layer;
 static TextLayer *s_print_time_left_layer;
 static TextLayer *s_info_layer;
+static TextLayer *s_filename_layer;
 static EffectLayer *progress_percent_layer;
 
 static void update_progress(int percent_complete){
-  APP_LOG(APP_LOG_LEVEL_INFO, "%d %% complete", percent_complete);
+  APP_LOG(APP_LOG_LEVEL_INFO, "setting progress bar to %d%% complete", percent_complete);
   Layer* layer = effect_layer_get_layer(progress_percent_layer);
   float progress_percent_height = (screen_height*(percent_complete*0.01));
   APP_LOG(APP_LOG_LEVEL_INFO, "%fpx height", progress_percent_height);
@@ -40,7 +41,15 @@ static void update_progress(int percent_complete){
   }
 }
 
+// static void update_print_time_left(uint32_t time_left){
+//   time_t rt = time(NULL);
+//   char time_left[] = "00:00:00";
+//   struct tm *acctime = localtime((time_t)&rt);
+//   strftime(time_left, sizeof(time_left), "%m/%d%H:%M",  acctime);
+// }
+
 void process_tuple(Tuple *t){
+  static char print_time_left[9];
   int key = t->key;
   int value = t->value->int32;
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Got key %d, value %d", key, value);
@@ -69,9 +78,11 @@ void process_tuple(Tuple *t){
       break;
     // Print time left
     case 2:
-//       char tempvar[] = t->key;
-//       text_layer_set_text(s_print_time_left_layer, tempvar);
-//       text_layer_set_text(s_print_time_left_layer, t->key->);
+      snprintf(print_time_left, sizeof(print_time_left), "%s", t->value->cstring);
+      text_layer_set_text(s_print_time_left_layer, print_time_left);
+      break;
+    // Filename
+    case 4:
       break;
   }
 }
@@ -135,16 +146,28 @@ static void main_window_load(Window *window) {
   // ------------------------ Time Text Layer ------------------------
   
   // ------------------------ Print Time Left Text Layer ------------------------
-  s_print_time_left_layer = text_layer_create(GRect(0, 65, 144, 50));
+  s_print_time_left_layer = text_layer_create(GRect(0, 65, screen_width, 50));
   text_layer_set_background_color(s_print_time_left_layer, GColorClear);
   text_layer_set_text_color(s_print_time_left_layer, current_time_color);
   text_layer_set_text(s_print_time_left_layer, "00:00");
 
-  text_layer_set_font(s_print_time_left_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
+  text_layer_set_font(s_print_time_left_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
   text_layer_set_text_alignment(s_print_time_left_layer, GTextAlignmentCenter);
 
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_print_time_left_layer));
   // ------------------------ Print Time Left Text Layer ------------------------
+  
+  // ------------------------ Filename Text Layer ------------------------
+  s_filename_layer = text_layer_create(GRect(0, 90, screen_width, 50));
+  text_layer_set_background_color(s_filename_layer, GColorClear);
+  text_layer_set_text_color(s_filename_layer, current_time_color);
+  text_layer_set_text(s_filename_layer, ".gcode");
+
+  text_layer_set_font(s_filename_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+  text_layer_set_text_alignment(s_filename_layer, GTextAlignmentCenter);
+
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_filename_layer));
+  // ------------------------ Filename Text Layer ------------------------
   
   // ------------------------ Info Text Layer ------------------------
   s_info_layer = text_layer_create(GRect(3, 130, screen_width, 30));
@@ -200,7 +223,6 @@ static void init() {
   
   app_message_register_inbox_received(inbox);
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-  
   
   // Subscribe to the time ticker on the minute unit
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);

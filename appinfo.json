@@ -1,6 +1,7 @@
 {
     "appKeys": {
         "current_state": 1,
+        "filename": 4,
         "percent": 0,
         "print_time_left": 2,
         "update": 3
